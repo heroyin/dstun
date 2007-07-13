@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
-  Dialogs, StdCtrls, ExtCtrls, DStun;
+  Dialogs, StdCtrls, ExtCtrls, DStun, DSMessage;
 
 type
   TForm1 = class(TForm)
@@ -35,11 +35,11 @@ const
      'FullCone', 'RestrictedCone', 'PortRestrictedCone',
      'Symmetric');
 var
-  DSClient: TDSClient;
+  DSClient: TDStunClient;
   DSResult: TDSResult;
 begin
   btnTest.Enabled := False;
-  DSClient := TDSClient.Create;
+  DSClient := TDStunClient.Create;
   try
     edtNatType.Text := '';
     edtPublicIP.Text := '';
