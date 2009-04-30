@@ -3,9 +3,7 @@ program DStuntest;
 uses
   Forms,
   TestMain in 'TestMain.pas' {Form1},
-  DStun in 'src\DStun.pas',
-  DSMessage in 'src\DSMessage.pas',
-  DSSocket in 'src\DSSocket.pas';
+  DStun in 'src\DStun.pas';
 
 {$R *.res}
 

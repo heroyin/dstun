@@ -32,6 +32,8 @@ Change log:
   - First version by heroyin@gmail.com.
  (2007-7-13):
   - First BindingRequest add changeip Attribute, with false and false
+ (2009-4-30):
+  - Fix bugs
 }
 unit DStun;
 
@@ -44,7 +46,7 @@ type
   private
     FBindAddr: TSockAddrIn;
     FLocalIP: string;
-    FLocalPort: word;
+    FLocalPort: Integer;
     FStartLocalPort: word;
     FTimeOut: Integer;
     FUdpSocket: THandle;
@@ -53,17 +55,16 @@ type
     function ReciveStream(AStream: TStream; AServer: String; APort: Integer):
         Boolean;
     function SendStream(AStream: TStream; AServer: String; APort: Integer): Boolean;
-    procedure SetLocalPort(const Value: word);
-  public
-    constructor Create;
-    destructor Destroy; override;
-    function Query(AServer: string; APort: integer): TDSResult;
     function SendCommand(AMessage: IDSMessage; AServer: string; APort: Integer):
         IDSMessage; overload;
     function SendCommand(AMessage: IDSMessage; AIP: TDSIPAddress): IDSMessage;
         overload;
-    property LocalIP: string read FLocalIP write FLocalIP;
-    property LocalPort: word read FLocalPort write SetLocalPort;
+  public
+    constructor Create;
+    destructor Destroy; override;
+    function Query(AServer: string; APort: integer): TDSResult;
+    property LocalIP: string read FLocalIP;
+    property LocalPort: Integer read FLocalPort;
     property TimeOut: Integer read FTimeOut write FTimeOut;
   end;
 
@@ -84,16 +85,13 @@ begin
   Result := AIP.Port_hi shl 8 + AIP.Port_lo;
 end;
 
-
-
 {TDStunClient}
 
 constructor TDStunClient.Create;
 begin
   inherited;
   FStartLocalPort := 3000;
-  FLocalIP := '0.0.0.0';
-  FUdpSocket := Socket(AF_INET,SOCK_DGRAM,0);
+  FUdpSocket := Socket(AF_INET, SOCK_DGRAM, 0);
   TimeOut := 3000;
 end;
 
@@ -104,29 +102,26 @@ begin
 end;
 
 procedure TDStunClient.BindSocket;
+var
+  AddrLen: Integer;
 begin
   FBindAddr.sin_family := AF_INET;
+  FBindAddr.sin_addr.S_addr := INADDR_ANY;
 
-  if LocalIP <> '' then
-    FBindAddr.sin_addr.S_addr := Inet_Addr(PChar(FLocalIP))
-  else
-    FBindAddr.sin_addr.S_addr := INADDR_ANY;
-
-  
-  FLocalPort := FStartLocalPort;
-  while FLocalPort < 65535 do
+  FBindAddr.sin_port := htons(0);
+  if bind(FUdpSocket, FBindAddr, sizeof(FBindAddr)) <> SOCKET_ERROR then
   begin
-    FBindAddr.sin_port := htons(FLocalPort);
-    if bind(FUdpSocket, FBindAddr, sizeof(FBindAddr)) <> SOCKET_ERROR then
+    setsockopt(FUdpSocket, SOL_SOCKET, SO_RCVTIMEO,
+      @FTimeOut, SizeOf(FTimeOut));
+    AddrLen := SizeOf(FBindAddr);
+    FillChar(FBindAddr, SizeOf(FBindAddr), #0);
+    if getsockname(FUdpSocket, FBindAddr, AddrLen) <> SOCKET_ERROR then
     begin
-      setsockopt(FUdpSocket, SOL_SOCKET, SO_RCVTIMEO,
-        @FTimeOut, SizeOf(FTimeOut));
-      Exit;
+      FLocalIP := inet_ntoa(FBindAddr.sin_addr);
+      FLocalPort := ntohs(FBindAddr.sin_port);
     end;
-    inc(FLocalPort);
-  end;
-
-  raise Exception.Create('bind faild!');
+  end else
+    raise Exception.Create('bind faild!');
 end;
 
 function TDStunClient.IsSameLocalAddress(AIP: TDSIPAddress): Boolean;
@@ -222,18 +217,17 @@ begin
   BindSocket;
 
   Result.NetType := dsntUdpBlocked;
+  FillChar(Result.PublicIP, SizeOf(Result.PublicIP), #0);
 
   ///test 1(1)
   tmpRequest1 := TDSMessage.Create;
   tmpRequest1.MessageType := DSMT_BindingRequest;
-  tmpRequest1.ChangeRequestAttribute := TDSChangeRequestAttribute.Create;
-  (tmpRequest1.ChangeRequestAttribute as IDSAttribute).AttributeType := DSAT_ChangeRequest;
-  tmpRequest1.ChangeRequestAttribute.ChangeIP := False;
-  tmpRequest1.ChangeRequestAttribute.ChangePort := False;
   tmpResponse1 := SendCommand(tmpRequest1, AServer, APort);
 
   if tmpResponse1 <> nil then
   begin
+    Result.PublicIP := tmpResponse1.MappedAddress.IPAddress;
+
     ///test 2
     tmpRequest2 := TDSMessage.Create;
     tmpRequest2.MessageType := DSMT_BindingRequest;
@@ -248,35 +242,21 @@ begin
       tmpResponse2 := SendCommand(tmpRequest2, AServer, APort);
 
       if tmpResponse2 <> nil then
-      begin
         ///Open Internet
-        Result.NetType := dsntOpenInternet;
-        Result.PublicIP := tmpResponse2.MappedAddress.IPAddress;
-      end else
-      begin
+        Result.NetType := dsntOpenInternet
+      else
         ///Symmetric UDP firewall
         Result.NetType := dsntSymmetricUdpFirewall;
-        Result.PublicIP := tmpResponse1.MappedAddress.IPAddress;
-      end;
     end else
     begin
       tmpResponse2 := SendCommand(tmpRequest2, AServer, APort);
-     // if SameIPAddress(tmpResponse2.MappedAddress.IPAddress,
-     //   tmpResponse1.MappedAddress.IPAddress) then
       if tmpResponse2 <> nil then 
-      begin
         /// full cone nat
-        Result.NetType := dsntFullCone;
-        Result.PublicIP := tmpResponse2.MappedAddress.IPAddress;
-      end else
-      begin
+        Result.NetType := dsntFullCone
+      else begin
         ///TEST 1(2)
         tmpRequest12 := TDSMessage.Create;
         tmpRequest12.MessageType := DSMT_BindingRequest;
-        tmpRequest12.ChangeRequestAttribute := TDSChangeRequestAttribute.Create;
-        (tmpRequest12.ChangeRequestAttribute as IDSAttribute).AttributeType := DSAT_ChangeRequest;
-        tmpRequest12.ChangeRequestAttribute.ChangeIP := False;
-        tmpRequest12.ChangeRequestAttribute.ChangePort := False;
         tmpResponse12 := SendCommand(tmpRequest12,
           tmpResponse1.ChangedAddress.IPAddress);
         if tmpResponse12 <> nil then
@@ -284,11 +264,8 @@ begin
           ///Symmetric NAT
           if not SameIPAddress(tmpResponse12.MappedAddress.IPAddress,
             tmpResponse1.MappedAddress.IPAddress) then
-          begin
-            Result.NetType := dsntSymmetric;
-            Result.PublicIP := tmpResponse1.MappedAddress.IPAddress;
-          end else
-          begin
+            Result.NetType := dsntSymmetric
+          else begin
             tmpRequest3 := TDSMessage.Create;
             tmpRequest3.MessageType := DSMT_BindingRequest;
             tmpRequest3.ChangeRequestAttribute := TDSChangeRequestAttribute.Create;
@@ -298,18 +275,14 @@ begin
 
             tmpResponse3 := SendCommand(tmpRequest3,
               tmpResponse1.ChangedAddress.IPAddress);
-            if SameIPAddress(tmpResponse3.MappedAddress.IPAddress,
+
+            if (tmpResponse3 <> nil) and SameIPAddress(tmpResponse3.MappedAddress.IPAddress,
               tmpResponse1.MappedAddress.IPAddress) then
-            begin
               /// Restricted
-              Result.NetType := dsntRestrictedCone;
-              Result.PublicIP := tmpResponse1.MappedAddress.IPAddress;
-            end else
-            begin
+              Result.NetType := dsntRestrictedCone
+            else
               ///map Restricted
               Result.NetType := dsntPortRestrictedCone;
-              Result.PublicIP := tmpResponse1.MappedAddress.IPAddress;
-            end;
           end;
         end;
 
@@ -346,10 +319,10 @@ begin
   AStream.Position := 0;
   AStream.Read(tmpBuf, AStream.Size);
 
-    tmpAddr := GetSocketAddr(AServer, APort);
-    tmpAddrLength := SizeOf(tmpAddr);
-    Result := sendto(FUdpSocket, tmpBuf, AStream.Size, 0, tmpAddr, tmpAddrLength)
-      <> SOCKET_ERROR;
+  tmpAddr := GetSocketAddr(AServer, APort);
+  tmpAddrLength := SizeOf(tmpAddr);
+  Result := sendto(FUdpSocket, tmpBuf, AStream.Size, 0, tmpAddr, tmpAddrLength)
+    <> SOCKET_ERROR;
 //    FSocket.SendBuf(tmpBuf, AStream.Size);
 end;
 
@@ -362,7 +335,6 @@ var
 begin
   Result := nil;
 
-
   tmpStream := TMemoryStream.Create;
   try
     tmpStart := GetTickCount;
@@ -370,14 +342,15 @@ begin
     tmpStream.Size := 0;
 
     AMessage.Build(tmpStream);
-    if not SendStream(tmpStream, AServer, APort) then Exit;
 
-    while GetTickCount - tmpStart < 2000 do
+    while GetTickCount - tmpStart < FTimeOut do
     begin
+      SendStream(tmpStream, AServer, APort);
+
       if WaitForData(FUdpSocket, 100, AServer, APort) then
       begin
         tmpStream.Size := 0;
-        if not ReciveStream(tmpStream, AServer, APort) then continue;
+        ReciveStream(tmpStream, AServer, APort);
 
         tmpMessage := TDSMessage.Create;
         tmpMessage.Parser(tmpStream);
@@ -398,12 +371,6 @@ function TDStunClient.SendCommand(AMessage: IDSMessage; AIP: TDSIPAddress):
     IDSMessage;
 begin
   Result := SendCommand(AMessage, IPAddressToString(AIP), IPAdressToPort(AIP));
-end;
-
-procedure TDStunClient.SetLocalPort(const Value: word);
-begin
-  FStartLocalPort := Value;
-  FLocalPort := Value;
 end;
 
 

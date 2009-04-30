@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
-  Dialogs, StdCtrls, ExtCtrls, DStun, DSMessage;
+  Dialogs, StdCtrls, ExtCtrls, DStun, DSMessage, Sockets;
 
 type
   TForm1 = class(TForm)
@@ -46,7 +46,8 @@ begin
     DSResult := DSClient.Query(edtServer.Text, StrToInt(edtPort.Text));
     edtLocal.Text := Format('%s:%d', [DSClient.LocalIP, DSClient.LocalPort]);
     edtNatType.Text := NetArray[DSResult.NetType];
-    edtPublicIP.Text := IPAddressToString(DSResult.PublicIP);
+    edtPublicIP.Text := Format('%s:%d', [IPAddressToString(DSResult.PublicIP),
+      IPAdressToPort(DSResult.PublicIP)]);
   finally
     FreeAndNil(DSClient);
     btnTest.Enabled := True;

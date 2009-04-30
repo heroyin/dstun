@@ -1,10 +1,9 @@
 object Form1: TForm1
   Left = 507
   Top = 309
-  BorderStyle = bsDialog
+  Width = 246
+  Height = 170
   Caption = 'STUN test'
-  ClientHeight = 143
-  ClientWidth = 238
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -33,7 +32,7 @@ object Form1: TForm1
     EditLabel.Caption = 'Server:'
     LabelPosition = lpLeft
     TabOrder = 1
-    Text = 'stunserver.org'
+    Text = 'stun.ekiga.net'
   end
   object edtPort: TLabeledEdit
     Left = 176
