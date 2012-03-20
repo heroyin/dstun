@@ -67,7 +67,17 @@ const
 
   
 type
+{
+                            dsntOpenInternet  dsntSymmetricUdpFirewall dsntFullCone dsntRestrictedCone dsntPortRestrictedCone dsntSymmetric
+   dsntOpenInternet               ¡Ì                   ¡Ì                   ¡Ì             ¡Ì                   ¡Ì                  ¡Ì
+   dsntSymmetricUdpFirewall       ¡Ì                   ¡Ì                   ¡Ì             ¡Ì                   ¡Ì                  ¡Ì
+   dsntFullCone                   ¡Ì                   ¡Ì                   ¡Ì             ¡Ì                   ¡Ì                  ¡Ì
+   dsntRestrictedCone             ¡Ì                   ¡Ì                   ¡Ì
+   dsntPortRestrictedCone
+   dsntSymmetric
 
+
+}
   TDSNetType = (
     /// UDP is always blocked.
     dsntUdpBlocked,
@@ -107,7 +117,7 @@ type
 
   TDSErrorCode = record
     Code: integer;
-    Reason: string;
+    Reason: AnsiString;
   end;
 
   TDSResult = record
@@ -150,9 +160,9 @@ type
 
   IDSStringAttribute = interface
   ['{79DD3703-3879-49C5-B252-07F1BDCD30D5}']
-    function GetStringValue: string; stdcall;
-    procedure SetStringValue(const Value: string); stdcall;
-    property StringValue: string read GetStringValue write SetStringValue;
+    function GetStringValue: AnsiString; stdcall;
+    procedure SetStringValue(const Value: AnsiString); stdcall;
+    property StringValue: AnsiString read GetStringValue write SetStringValue;
 
   end;
 
@@ -160,13 +170,13 @@ type
   ['{E74044FA-35F6-4230-BBF0-948091289FB5}']
     function GetClasses: Byte; stdcall;
     function GetNumber: Word; stdcall;
-    function GetReason: string; stdcall;
+    function GetReason: AnsiString; stdcall;
     procedure SetClasses(const Value: Byte); stdcall;
     procedure SetNumber(const Value: Word); stdcall;
-    procedure SetReason(const Value: string); stdcall;
+    procedure SetReason(const Value: AnsiString); stdcall;
     property Classes: Byte read GetClasses write SetClasses;
     property Number: Word read GetNumber write SetNumber;
-    property Reason: string read GetReason write SetReason;
+    property Reason: AnsiString read GetReason write SetReason;
   end;
 
   IDSMessage = interface
@@ -283,13 +293,13 @@ type
 
   TDSStringAttribute = class(TDSAttribute, IDSStringAttribute)
   private
-    FStringValue: string;
+    FStringValue: AnsiString;
   protected
-    function GetStringValue: string; stdcall;
-    procedure SetStringValue(const Value: string); stdcall;
+    function GetStringValue: AnsiString; stdcall;
+    procedure SetStringValue(const Value: AnsiString); stdcall;
     procedure Build(AStream: TStream); override;
     procedure Parser(AStream: TStream); override;
-    property StringValue: string read GetStringValue write SetStringValue;
+    property StringValue: AnsiString read GetStringValue write SetStringValue;
   public
     constructor Create; override;
   end;
@@ -298,19 +308,19 @@ type
   private
     FClasses: Byte;
     FNumber: Word;
-    FReason: string;
+    FReason: AnsiString;
   protected
     function GetClasses: Byte; stdcall;
     function GetNumber: Word; stdcall;
-    function GetReason: string; stdcall;
+    function GetReason: AnsiString; stdcall;
     procedure SetClasses(const Value: Byte); stdcall;
     procedure SetNumber(const Value: Word); stdcall;
-    procedure SetReason(const Value: string); stdcall;
+    procedure SetReason(const Value: AnsiString); stdcall;
     procedure Build(AStream: TStream); override;
     procedure Parser(AStream: TStream); override;
     property Classes: Byte read GetClasses write SetClasses;
     property Number: Word read GetNumber write SetNumber;
-    property Reason: string read GetReason write SetReason;
+    property Reason: AnsiString read GetReason write SetReason;
   public
     constructor Create; override;
   end;
@@ -400,13 +410,13 @@ function ReadWord(AStream: TStream): Word;
 
 function ReadIPAddress(AStream: TStream): TDSIPAddress;
 
-function ReadString(AStream: TStream): string;
+function ReadString(AStream: TStream): AnsiString;
 
 function SameIPAddress(IP1, IP2: TDSIPAddress): Boolean;
 
 function SameGUID(GUID1, GUID2: TGUID): Boolean;
 
-function IPAddressToString(AIP: TDSIPAddress): string;
+function IPAddressToString(AIP: TDSIPAddress): AnsiString;
 
 function IPAdressToPort(AIP: TDSIPAddress): Word;
 
@@ -438,9 +448,9 @@ begin
   AStream.Read(Result, SizeOf(Result));
 end;
 
-function ReadString(AStream: TStream): string;
+function ReadString(AStream: TStream): AnsiString;
 var
-  tmpChar: array [0..255] of char;
+  tmpChar: array [0..255] of ansichar;
 begin
   AStream.Read(tmpChar, Length(tmpChar));
   Result := tmpChar;
@@ -472,7 +482,7 @@ begin
             (GUID1.D4[7] = GUID2.D4[7]);
 end;
 
-function IPAddressToString(AIP: TDSIPAddress): string;
+function IPAddressToString(AIP: TDSIPAddress): AnsiString;
 begin
   Result := Format('%d.%d.%d.%d', [AIP.IP[0], AIP.IP[1], AIP.IP[2], AIP.IP[3]]);
 end;
@@ -682,7 +692,7 @@ begin
   AStream.Write(FStringValue, Length(FStringValue) + 1);
 end;
 
-function TDSStringAttribute.GetStringValue: string;
+function TDSStringAttribute.GetStringValue: AnsiString;
 begin
   Result := FStringValue;
 end;
@@ -693,7 +703,7 @@ begin
   StringValue := ReadString(AStream);
 end;
 
-procedure TDSStringAttribute.SetStringValue(const Value: string);
+procedure TDSStringAttribute.SetStringValue(const Value: AnsiString);
 begin
   FStringValue := Value;
   FAttributeLength := Length(FStringValue) + 1;
@@ -744,7 +754,7 @@ begin
   Result := FNumber;
 end;
 
-function TDSErrorAttribute.GetReason: string;
+function TDSErrorAttribute.GetReason: AnsiString;
 begin
   Result := FReason;
 end;
@@ -759,7 +769,7 @@ begin
   FNumber := Value;
 end;
 
-procedure TDSErrorAttribute.SetReason(const Value: string);
+procedure TDSErrorAttribute.SetReason(const Value: AnsiString);
 begin
   FReason := Value;
 
@@ -982,18 +992,21 @@ var
   tmpRequestAttr: TDSChangeRequestAttribute;
   tmpStringAttr: TDSStringAttribute;
   tmpErrorAttr: TDSErrorAttribute;
-  tmpAttrLenth, tmpMessageLength: Word;
+  tmpAttrLength, tmpMessageLength: Word;
 begin
+  if AStream.Size = 0 then Exit;
+
   AStream.Position := 0;
   FMessageType := ReadWord(AStream);
   tmpMessageLength := ReadWord(AStream);
   AStream.Read(FTransactionID, SizeOf(FTransactionID));
 
-  while AStream.Position < (tmpMessageLength + HeadLength) do
+  while (AStream.Position < (tmpMessageLength + HeadLength)) and (AStream.Position <> AStream.Size) do
   begin
     tmpAttrType := ReadWord(AStream);
-    tmpAttrLenth := ReadWord(AStream);
-    AStream.Position := AStream.Position - SizeOf(tmpAttrType) - SizeOf(tmpAttrLenth);
+    tmpAttrLength := ReadWord(AStream);
+
+    AStream.Position := AStream.Position - SizeOf(tmpAttrType) - SizeOf(tmpAttrLength);
 
     case tmpAttrType of
       DSAT_MappedAddress:
@@ -1040,7 +1053,7 @@ begin
       end;
       DSAT_MessageIntegrity:
         ///ignore
-        AStream.Position := AStream.Position + tmpAttrLenth;
+        AStream.Position := AStream.Position + tmpAttrLength;
       DSAT_ErrorCode:
       begin
         tmpErrorAttr := TDSErrorAttribute.Create;
@@ -1049,7 +1062,7 @@ begin
       end;
       DSAT_UnknownAttribute:
         ///ignore
-        AStream.Position := AStream.Position + tmpAttrLenth;
+        AStream.Position := AStream.Position + tmpAttrLength;
       DSAT_ReflectedFrom:
       begin
         tmpAddrAttr := TDSAddressAttribute.Create;
@@ -1074,9 +1087,12 @@ begin
         tmpStringAttr.Parser(AStream);
         FServerName := tmpStringAttr;
       end;
-      else
+      else begin
         ///ignore
-        AStream.Position := AStream.Position + tmpAttrLenth;
+        AStream.Position := AStream.Position + tmpAttrLength;
+        if tmpAttrLength = 0 then
+          Exit;
+      end;
     end;
   end;    
 end;

@@ -2,8 +2,7 @@ program DStuntest;
 
 uses
   Forms,
-  TestMain in 'TestMain.pas' {Form1},
-  DStun in 'src\DStun.pas';
+  TestMain in 'TestMain.pas';
 
 {$R *.res}
 

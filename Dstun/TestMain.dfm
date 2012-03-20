@@ -1,9 +1,9 @@
 object Form1: TForm1
   Left = 507
   Top = 309
-  Width = 246
-  Height = 170
   Caption = 'STUN test'
+  ClientHeight = 130
+  ClientWidth = 238
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -11,11 +11,12 @@ object Form1: TForm1
   Font.Name = 'MS Sans Serif'
   Font.Style = []
   OldCreateOrder = False
+  OnCreate = FormCreate
   PixelsPerInch = 96
   TextHeight = 13
   object btnTest: TButton
     Left = 168
-    Top = 112
+    Top = 96
     Width = 57
     Height = 25
     Caption = 'Test'
@@ -32,7 +33,7 @@ object Form1: TForm1
     EditLabel.Caption = 'Server:'
     LabelPosition = lpLeft
     TabOrder = 1
-    Text = 'stun.ekiga.net'
+    Text = 'rooyee.im'
   end
   object edtPort: TLabeledEdit
     Left = 176
@@ -48,7 +49,7 @@ object Form1: TForm1
   end
   object edtNatType: TLabeledEdit
     Left = 55
-    Top = 56
+    Top = 40
     Width = 170
     Height = 21
     EditLabel.Width = 44
@@ -59,7 +60,7 @@ object Form1: TForm1
   end
   object edtPublicIP: TLabeledEdit
     Left = 55
-    Top = 80
+    Top = 64
     Width = 170
     Height = 21
     EditLabel.Width = 42
@@ -67,16 +68,5 @@ object Form1: TForm1
     EditLabel.Caption = 'PublicIP:'
     LabelPosition = lpLeft
     TabOrder = 4
-  end
-  object edtLocal: TLabeledEdit
-    Left = 55
-    Top = 32
-    Width = 170
-    Height = 21
-    EditLabel.Width = 29
-    EditLabel.Height = 13
-    EditLabel.Caption = 'Local:'
-    LabelPosition = lpLeft
-    TabOrder = 5
   end
 end

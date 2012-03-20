@@ -27,10 +27,9 @@ interface
 uses
   SysUtils, WinSock;
 
-function GetSocketAddr(h: String; p: Integer): TSockAddr;
+function GetSocketAddr(h: ansistring; p: Integer): TSockAddr;
 
-function WaitForData(H: THandle; ATimeOut: Integer; AServer: String; APort:
-    Integer): Boolean;
+function WaitForData(H: THandle; ATimeOut: Integer): Boolean;
 
 implementation
 
@@ -56,9 +55,9 @@ begin
     raise Exception.Create('WSACleanup');
 end;
 
-function GetSocketAddr(h: String; p: Integer): TSockAddr;
+function GetSocketAddr(h: ansistring; p: Integer): TSockAddr;
 
-  function LookupHostAddr(const hn: string): string;
+  function LookupHostAddr(const hn: ansistring): AnsiString;
   var
     h: PHostEnt;
   begin
@@ -67,12 +66,12 @@ function GetSocketAddr(h: String; p: Integer): TSockAddr;
     begin
       if hn[1] in ['0'..'9'] then
       begin
-        if inet_addr(pchar(hn)) <> INADDR_NONE then
+        if inet_addr(pansichar(hn)) <> INADDR_NONE then
           Result := hn;
       end
       else
       begin
-        h := gethostbyname(pchar(hn));
+        h := gethostbyname(pansichar(hn));
         if h <> nil then
           with h^ do
           Result := format('%d.%d.%d.%d', [ord(h_addr^[0]), ord(h_addr^[1]),
@@ -82,14 +81,14 @@ function GetSocketAddr(h: String; p: Integer): TSockAddr;
     else Result := '0.0.0.0';
   end;
 
-  function LookupPort(const sn: string; pn: pchar = nil): word;
+  function LookupPort(const sn: ansistring; pn: PAnsiChar = nil): word;
   var
     se: PServent;
   begin
     Result := 0;
     if sn <> '' then
     begin
-      se := getservbyname(pchar(sn), pchar(pn));
+      se := getservbyname(pansichar(sn), pansichar(pn));
       if se <> nil then
         Result := ntohs(se^.s_port)
       else
@@ -99,7 +98,7 @@ function GetSocketAddr(h: String; p: Integer): TSockAddr;
 
 begin
   Result.sin_family := AF_INET;
-  Result.sin_addr.s_addr := inet_addr(pchar(LookupHostAddr(h)));
+  Result.sin_addr.s_addr := inet_addr(pansichar(LookupHostAddr(h)));
   Result.sin_port := htons(LookupPort(IntToStr(p)));
 end;
 
@@ -156,8 +155,7 @@ begin
     ExceptFlag^ := FD_ISSET(H, ExceptFds);
 end;
 
-function WaitForData(H: THandle; ATimeOut: Integer; AServer: String; APort:
-    Integer): Boolean;
+function WaitForData(H: THandle; ATimeOut: Integer): Boolean;
 var
   ReadReady, ExceptFlag: Boolean;
 begin
